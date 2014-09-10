@@ -24,31 +24,152 @@
     </div>
     <div id="content">
         <div class="elem">
-            <div class="photo-container">
-                <div class="photo-elem">
-                    <img class="photo" src="assets/img/noedge-cathedral.jpg"/>
-                    <div class="description">
-                        <div class="description-title">
-                            Title
-                        </div>
-                        <div class="description-info">
-                            Bla bla bla
-                        </div>
+            <div class="text-title">Overview</div>
+            <div class="text">
+In the early twentieth century, Prokudin-Gorskii was given special permission to travel across the Russian Empire and take color photographs of what he saw. Since this was before color photography was invented, he came up with the idea to record three exposures of every scene using red, green, and blue filters. Luckily, digitized versions of these glass plates have been made available through the Library of Congress. The goal of this assignment was to take the digitized glass plate images and, using image processing techniques, automatically produce a color rendering of the scene. The program that I have created, and will describe below, divides the glass plate image into thirds and aligns the second and third color (G and R) channels to the first (B).
+            </div>
+        </div>
+        <div class="elem">
+            <div class="text-title">Naive Approach</div>
+            <div class="text">
+The naive implementation I used exhaustively searches over a window of possible displacements ([-15:15] pixels) and scores each combination of x and y offsets by using the Sum of Squared Differences (SSD) metric. In order to make my program more efficient, I decided to parallelize the computation by assigning different combinations of offsets to different threads. 
+<br><br>
+The JPEG images that were are sufficiently small for this naive implementation to run in ~400 milliseconds on the instructional machines in Cory. 
+Below are the results for the naive approach on two the smaller images.</div>
+        </div>
+        <div class="elem">
+            <div class="photo-elem">
+                <img class="photo" src="assets/img/noedge-cathedral.jpg"/>
+                <div class="description">
+                    <div class="description-title">
+                        Cathedral
+                    </div>
+                    <div class="description-info">
+                        R[x=3,y=12], G[x=2,y=5]
+                        <br>0.385 seconds
                     </div>
                 </div>
-                <div class="photo-elem">
-                    <img class="photo" src="assets/img/noedge-emir.jpg"/>
-                    <div class="description">
-                        <div class="description-title">
-                            Title
-                        </div>
-                        <div class="description-info">
-                            Bla bla bla
-                        </div>
+            </div>
+            <div class="photo-elem">
+                <img class="photo" src="assets/img/noedge-monastery.jpg"/>
+                <div class="description">
+                    <div class="description-title">
+                        Monastery
+                    </div>
+                    <div class="description-info">
+                        R[x=2,y=3], G[x=2,y=-3]
+                        <br>0.398 seconds
                     </div>
                 </div>
             </div>
         </div>
+        <div class="elem">
+            <div class="text-title">Image Pyramid</div>
+            <div class="text">
+The larger TIFF images, on the other hand, were too large to use this inefficient method so I used an image-pyramid to get an additional speedup resulting in a computation that took ~1 second. The image pyramid represents the image at multiple scales, scaled by a factor of two, and the processing starts from the coarsest image going down the pyramid until it reaches the original resolution. 
+<br><br>
+My implementation resizes the image by a factor of two until the smallest dimension is at most 150 pixels. Once this threshold was reached, the program iteratively runs the naive alignment algorithm on both color channels searching over a window that is proportional to the depth of the recursion. The offsets that are returned by the naive algorithm are then upscaled by a factor of two and the program iterates through this process until the original resolution is reached.
+<br><br>
+This algorithm was successful for most images. For example: </div>
+        </div>
+        <div class="elem">
+            <div class="photo-elem">
+                <img class="photo" src="assets/img/noedge-lady.jpg"/>
+                <div class="description">
+                    <div class="description-title">
+                        Lady
+                    </div>
+                    <div class="description-info">
+                        R[x=10,y=112], G[x=7,y=51]
+                        <br>1.079 seconds
+                    </div>
+                </div>
+            </div>
+            <div class="photo-elem">
+                <img class="photo" src="assets/img/noedge-selfie.jpg"/>
+                <div class="description">
+                    <div class="description-title">
+                        Selfie
+                    </div>
+                    <div class="description-info">
+                        R[x=36,y=173], G[x=29,y=78]
+                        <br>1.131 seconds
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="elem">
+            <div class="text-title"></div>
+            <div class="text">
+Only two of the images did not align well:
+            </div>
+        </div>
+        <div class="elem">
+            <div class="photo-elem">
+                <img class="photo" src="assets/img/noedge-emir.jpg"/>
+                <div class="description">
+                    <div class="description-title">
+                        Emir
+                    </div>
+                    <div class="description-info">
+                        R[x=-68,y=-119], G[x=24,y=48]
+                        <br>1.046 seconds
+                    </div>
+                </div>
+            </div>
+            <div class="photo-elem">
+                <img class="photo" src="assets/img/noedge-village.jpg"/>
+                <div class="description">
+                    <div class="description-title">
+                        Village
+                    </div>
+                    <div class="description-info">
+                        R[x=-80,y=0], G[x=-10,y=0]
+                        <br>1.110 seconds
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="elem">
+            <div class="text-title"></div>
+            <div class="text">
+The problem with using pixel intensity is that these vary across the three channels. In both of these images, there is a color that dominates over the other channel (blue and green respectively) which makes this approach fall short. 
+            </div>
+        </div>
+        <div class="elem">
+            <div class="text-title">Edge Alignment</div>
+            <div class="text">
+Since the pixel intensities vary across the different color channels, I decided to use the Laplacian of Gaussian method of edge detection filter that is made available through Matlab’s Image Processing ToolBox. The criteria that I used for selecting this particular filter were the results and time taken to compute.<br>
+This gave much better results, as is illustrated in the following images: 
+            </div>
+        </div>
+        <div class="elem">
+            <div class="photo-elem">
+                <img class="photo" src="assets/img/result-emir.jpg"/>
+                <div class="description">
+                    <div class="description-title">
+                        Emir
+                    </div>
+                    <div class="description-info">
+                        R[x=41,y=106], G[x=24,y=49]
+                        <br>7.039 seconds
+                    </div>
+                </div>
+            </div>
+            <div class="photo-elem">
+                <img class="photo" src="assets/img/result-village.jpg"/>
+                <div class="description">
+                    <div class="description-title">
+                        Village
+                    </div>
+                    <div class="description-info">
+                        R[x=23,y=137], G[x=13,y=65]
+                        <br>7.705 seconds
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </body>
 </html>
